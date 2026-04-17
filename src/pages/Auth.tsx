@@ -77,7 +77,10 @@ const Auth = () => {
           toast({ title: "Check your details", description: parsed.error.issues[0].message, variant: "destructive" });
           return;
         }
-        const { error } = await supabase.auth.signInWithPassword(parsed.data);
+        const { error } = await supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        });
         if (error) throw error;
       }
     } catch (err: any) {
