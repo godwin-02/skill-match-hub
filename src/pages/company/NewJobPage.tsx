@@ -14,6 +14,8 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 type Level = "entry" | "junior" | "mid" | "senior";
+type WorkMode = "remote" | "hybrid" | "onsite";
+type JobType = "full_time" | "part_time" | "internship" | "contract";
 
 const NewJobPage = () => {
   const { user } = useAuth();
@@ -24,6 +26,8 @@ const NewJobPage = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [level, setLevel] = useState<Level>("entry");
+  const [workMode, setWorkMode] = useState<WorkMode>("onsite");
+  const [jobType, setJobType] = useState<JobType>("full_time");
   const [location, setLocation] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
@@ -40,6 +44,8 @@ const NewJobPage = () => {
       required_skills: skills,
       preferred_roles: roles,
       experience_level: level,
+      work_mode: workMode,
+      job_type: jobType,
       location: location.trim() || null,
       salary_min: salaryMin ? parseInt(salaryMin, 10) : null,
       salary_max: salaryMax ? parseInt(salaryMax, 10) : null,
@@ -84,6 +90,32 @@ const NewJobPage = () => {
               <div className="space-y-1.5">
                 <Label>Location</Label>
                 <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Remote / Bangalore" maxLength={100}/>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Work mode</Label>
+                <Select value={workMode} onValueChange={(v) => setWorkMode(v as WorkMode)}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="remote">Remote</SelectItem>
+                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                    <SelectItem value="onsite">On-site</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Job type</Label>
+                <Select value={jobType} onValueChange={(v) => setJobType(v as JobType)}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full_time">Full-time</SelectItem>
+                    <SelectItem value="part_time">Part-time</SelectItem>
+                    <SelectItem value="internship">Internship</SelectItem>
+                    <SelectItem value="contract">Contract</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
