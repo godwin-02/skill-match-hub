@@ -15,6 +15,7 @@ import StudentProfilePage from "./pages/student/StudentProfilePage";
 import JobsBrowse from "./pages/student/JobsBrowse";
 import JobDetail from "./pages/student/JobDetail";
 import MyApplications from "./pages/student/MyApplications";
+import SavedJobs from "./pages/student/SavedJobs";
 
 import CompanyDashboard from "./pages/company/CompanyDashboard";
 import CompanyProfilePage from "./pages/company/CompanyProfilePage";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/jobs" element={<ProtectedRoute requireRole="student"><JobsBrowse /></ProtectedRoute>} />
             <Route path="/jobs/:id" element={<ProtectedRoute requireRole="student"><JobDetail /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute requireRole="student"><MyApplications /></ProtectedRoute>} />
+            <Route path="/saved" element={<ProtectedRoute requireRole="student"><SavedJobs /></ProtectedRoute>} />
 
             {/* Company */}
             <Route path="/company" element={<ProtectedRoute requireRole="company"><CompanyDashboard /></ProtectedRoute>} />

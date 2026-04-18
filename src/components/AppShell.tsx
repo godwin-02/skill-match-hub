@@ -4,18 +4,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Briefcase, FileText, User, Building2,
-  PlusCircle, Users, LogOut, Sparkles, Menu,
+  PlusCircle, Users, LogOut, Sparkles, Menu, Bookmark,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; }
 
 const studentNav: NavItem[] = [
   { to: "/student", label: "Dashboard", icon: LayoutDashboard },
   { to: "/jobs", label: "Browse jobs", icon: Briefcase },
+  { to: "/saved", label: "Saved jobs", icon: Bookmark },
   { to: "/applications", label: "My applications", icon: FileText },
   { to: "/profile", label: "My profile", icon: User },
 ];
@@ -93,22 +95,25 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-40">
-          <Link to="/" className="flex items-center gap-2">
+        {/* Top bar with notifications (all viewports) */}
+        <header className="flex items-center justify-between p-4 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-40">
+          <Link to="/" className="flex items-center gap-2 lg:invisible">
             <div className="h-8 w-8 rounded-lg gradient-hero flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="font-display font-bold">SkillSync</span>
           </Link>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon"><Menu className="h-5 w-5" /></Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <Sidebar />
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-center gap-1">
+            <NotificationsBell />
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden"><Menu className="h-5 w-5" /></Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <Sidebar />
+              </SheetContent>
+            </Sheet>
+          </div>
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-10 max-w-7xl w-full mx-auto">

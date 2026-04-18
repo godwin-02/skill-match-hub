@@ -17,32 +17,41 @@ export type Database = {
       applications: {
         Row: {
           applied_at: string
+          ats_score: number
           cover_note: string | null
           id: string
           job_id: string
           match_score: number
+          missing_skills: string[]
           status: Database["public"]["Enums"]["application_status"]
           student_id: string
+          suggestions: string | null
           updated_at: string
         }
         Insert: {
           applied_at?: string
+          ats_score?: number
           cover_note?: string | null
           id?: string
           job_id: string
           match_score?: number
+          missing_skills?: string[]
           status?: Database["public"]["Enums"]["application_status"]
           student_id: string
+          suggestions?: string | null
           updated_at?: string
         }
         Update: {
           applied_at?: string
+          ats_score?: number
           cover_note?: string | null
           id?: string
           job_id?: string
           match_score?: number
+          missing_skills?: string[]
           status?: Database["public"]["Enums"]["application_status"]
           student_id?: string
+          suggestions?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -97,8 +106,10 @@ export type Database = {
           created_at: string
           description: string
           experience_level: Database["public"]["Enums"]["experience_level"]
+          expires_at: string | null
           id: string
           is_open: boolean
+          job_type: Database["public"]["Enums"]["job_type"]
           location: string | null
           preferred_roles: string[]
           required_skills: string[]
@@ -106,14 +117,17 @@ export type Database = {
           salary_min: number | null
           title: string
           updated_at: string
+          work_mode: Database["public"]["Enums"]["work_mode"]
         }
         Insert: {
           company_id: string
           created_at?: string
           description?: string
           experience_level?: Database["public"]["Enums"]["experience_level"]
+          expires_at?: string | null
           id?: string
           is_open?: boolean
+          job_type?: Database["public"]["Enums"]["job_type"]
           location?: string | null
           preferred_roles?: string[]
           required_skills?: string[]
@@ -121,14 +135,17 @@ export type Database = {
           salary_min?: number | null
           title: string
           updated_at?: string
+          work_mode?: Database["public"]["Enums"]["work_mode"]
         }
         Update: {
           company_id?: string
           created_at?: string
           description?: string
           experience_level?: Database["public"]["Enums"]["experience_level"]
+          expires_at?: string | null
           id?: string
           is_open?: boolean
+          job_type?: Database["public"]["Enums"]["job_type"]
           location?: string | null
           preferred_roles?: string[]
           required_skills?: string[]
@@ -136,6 +153,40 @@ export type Database = {
           salary_min?: number | null
           title?: string
           updated_at?: string
+          work_mode?: Database["public"]["Enums"]["work_mode"]
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -166,6 +217,27 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_jobs: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
       student_profiles: {
         Row: {
           bio: string | null
@@ -174,8 +246,11 @@ export type Database = {
           experience_level: Database["public"]["Enums"]["experience_level"]
           headline: string | null
           location: string | null
+          phone: string | null
           preferred_roles: string[]
           projects: string | null
+          resume_text: string | null
+          resume_url: string | null
           skills: string[]
           updated_at: string
           user_id: string
@@ -187,8 +262,11 @@ export type Database = {
           experience_level?: Database["public"]["Enums"]["experience_level"]
           headline?: string | null
           location?: string | null
+          phone?: string | null
           preferred_roles?: string[]
           projects?: string | null
+          resume_text?: string | null
+          resume_url?: string | null
           skills?: string[]
           updated_at?: string
           user_id: string
@@ -200,8 +278,11 @@ export type Database = {
           experience_level?: Database["public"]["Enums"]["experience_level"]
           headline?: string | null
           location?: string | null
+          phone?: string | null
           preferred_roles?: string[]
           projects?: string | null
+          resume_text?: string | null
+          resume_url?: string | null
           skills?: string[]
           updated_at?: string
           user_id?: string
@@ -255,6 +336,8 @@ export type Database = {
         | "accepted"
         | "rejected"
       experience_level: "entry" | "junior" | "mid" | "senior"
+      job_type: "full_time" | "part_time" | "internship" | "contract"
+      work_mode: "remote" | "hybrid" | "onsite"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -391,6 +474,8 @@ export const Constants = {
         "rejected",
       ],
       experience_level: ["entry", "junior", "mid", "senior"],
+      job_type: ["full_time", "part_time", "internship", "contract"],
+      work_mode: ["remote", "hybrid", "onsite"],
     },
   },
 } as const
