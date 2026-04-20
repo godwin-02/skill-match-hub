@@ -22,6 +22,9 @@ import CompanyProfilePage from "./pages/company/CompanyProfilePage";
 import NewJobPage from "./pages/company/NewJobPage";
 import ManageJobs from "./pages/company/ManageJobs";
 import ApplicantsPage from "./pages/company/ApplicantsPage";
+import CompanyAnalytics from "./pages/company/CompanyAnalytics";
+
+import AdminPanel from "./pages/admin/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +53,10 @@ const App = () => (
             <Route path="/company/jobs" element={<ProtectedRoute requireRole="company"><ManageJobs /></ProtectedRoute>} />
             <Route path="/company/jobs/new" element={<ProtectedRoute requireRole="company"><NewJobPage /></ProtectedRoute>} />
             <Route path="/company/jobs/:id/applicants" element={<ProtectedRoute requireRole="company"><ApplicantsPage /></ProtectedRoute>} />
+            <Route path="/company/analytics" element={<ProtectedRoute requireRole="company"><CompanyAnalytics /></ProtectedRoute>} />
+
+            {/* Admin */}
+            <Route path="/admin" element={<ProtectedRoute requireRole="admin"><AdminPanel /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

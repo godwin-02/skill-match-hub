@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Briefcase, FileText, User, Building2,
-  PlusCircle, Users, LogOut, Sparkles, Menu, Bookmark,
+  PlusCircle, LogOut, Sparkles, Menu, Bookmark, BarChart3, Shield,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetTrigger,
@@ -25,7 +25,11 @@ const companyNav: NavItem[] = [
   { to: "/company", label: "Dashboard", icon: LayoutDashboard },
   { to: "/company/jobs", label: "Manage jobs", icon: Briefcase },
   { to: "/company/jobs/new", label: "Post a job", icon: PlusCircle },
+  { to: "/company/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/company/profile", label: "Company profile", icon: Building2 },
+];
+const adminNav: NavItem[] = [
+  { to: "/admin", label: "Admin panel", icon: Shield },
 ];
 
 const NavList = ({ items, onClick }: { items: NavItem[]; onClick?: () => void }) => (
@@ -55,7 +59,7 @@ const NavList = ({ items, onClick }: { items: NavItem[]; onClick?: () => void })
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const { role, user, signOut } = useAuth();
   const nav = useNavigate();
-  const items = role === "company" ? companyNav : studentNav;
+  const items = role === "admin" ? adminNav : role === "company" ? companyNav : studentNav;
 
   const handleSignOut = async () => {
     await signOut();
@@ -73,7 +77,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <NavList items={items} onClick={onItemClick} />
       <div className="mt-auto pt-4 border-t border-border">
         <div className="px-3 py-2 text-xs text-muted-foreground truncate">
-          {user?.email}
+          {user?.email} {role === "admin" && <span className="ml-1 text-primary font-semibold">· admin</span>}
         </div>
         <Button
           variant="ghost"
@@ -89,13 +93,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-64 border-r border-border bg-sidebar shrink-0">
         <Sidebar />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar with notifications (all viewports) */}
         <header className="flex items-center justify-between p-4 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-40">
           <Link to="/" className="flex items-center gap-2 lg:invisible">
             <div className="h-8 w-8 rounded-lg gradient-hero flex items-center justify-center">

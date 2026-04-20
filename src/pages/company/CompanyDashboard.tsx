@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Briefcase, Users, FileCheck, PlusCircle, ArrowRight, AlertCircle } from "lucide-react";
+import { Loader2, Briefcase, Users, FileCheck, PlusCircle, ArrowRight, AlertCircle, BarChart3 } from "lucide-react";
 
 const CompanyDashboard = () => {
   const { user } = useAuth();
@@ -48,9 +48,12 @@ const CompanyDashboard = () => {
             <h1 className="font-display text-4xl font-bold">Company dashboard</h1>
             <p className="text-muted-foreground">Post jobs. Find your next great hire.</p>
           </div>
-          <Button asChild className="gradient-primary text-primary-foreground border-0 shadow-soft hover:shadow-glow transition-smooth">
-            <Link to="/company/jobs/new"><PlusCircle className="h-4 w-4 mr-2"/>Post a job</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline"><Link to="/company/analytics"><BarChart3 className="h-4 w-4 mr-2"/>Analytics</Link></Button>
+            <Button asChild className="gradient-primary text-primary-foreground border-0 shadow-soft hover:shadow-glow transition-smooth">
+              <Link to="/company/jobs/new"><PlusCircle className="h-4 w-4 mr-2"/>Post a job</Link>
+            </Button>
+          </div>
         </div>
 
         {profileEmpty && (

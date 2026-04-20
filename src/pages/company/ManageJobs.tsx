@@ -6,7 +6,11 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Briefcase, Trash2, Users } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Briefcase, Trash2, Users, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const ManageJobs = () => {
@@ -16,6 +20,8 @@ const ManageJobs = () => {
 
   const load = async () => {
     if (!user) return;
+    // Auto-close any expired jobs for this company
+    await supabase.rpc("close_expired_jobs");
     const { data } = await supabase
       .from("jobs")
       .select("*, applications(count)")
@@ -34,10 +40,29 @@ const ManageJobs = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this job and all its applications?")) return;
     const { error } = await supabase.from("jobs").delete().eq("id", id);
     if (error) toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     else { toast({ title: "Job deleted" }); load(); }
+  };
+
+  const duplicate = async (j: any) => {
+    if (!user) return;
+    const { error } = await supabase.from("jobs").insert({
+      company_id: user.id,
+      title: `${j.title} (copy)`,
+      description: j.description ?? "",
+      required_skills: j.required_skills ?? [],
+      preferred_roles: j.preferred_roles ?? [],
+      experience_level: j.experience_level,
+      job_type: j.job_type,
+      work_mode: j.work_mode,
+      location: j.location,
+      salary_min: j.salary_min,
+      salary_max: j.salary_max,
+      is_open: false,
+    });
+    if (error) toast({ title: "Duplicate failed", description: error.message, variant: "destructive" });
+    else { toast({ title: "Duplicated as draft (closed)" }); load(); }
   };
 
   if (loading) return <AppShell><div className="flex justify-center p-20"><Loader2 className="h-6 w-6 animate-spin"/></div></AppShell>;
@@ -48,7 +73,7 @@ const ManageJobs = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-4xl font-bold">Manage jobs</h1>
-            <p className="text-muted-foreground">{jobs.length} total</p>
+            <p className="text-muted-foreground">{jobs.length} total · expired jobs auto-close</p>
           </div>
           <Button asChild className="gradient-primary text-primary-foreground border-0 shadow-soft hover:shadow-glow transition-smooth">
             <Link to="/company/jobs/new">Post new job</Link>
@@ -69,6 +94,9 @@ const ManageJobs = () => {
                     <div className="font-display font-bold text-lg">{j.title}</div>
                     <div className="text-sm text-muted-foreground">
                       {j.location ?? "Remote"} · <span className="capitalize">{j.experience_level}</span>
+                      {j.expires_at && (
+                        <> · expires {new Date(j.expires_at).toLocaleDateString()}</>
+                      )}
                     </div>
                   </div>
                   <Link to={`/company/jobs/${j.id}/applicants`}
@@ -79,9 +107,28 @@ const ManageJobs = () => {
                     <span className="text-xs text-muted-foreground">{j.is_open ? "Open" : "Closed"}</span>
                     <Switch checked={j.is_open} onCheckedChange={(v) => toggle(j.id, v)}/>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => remove(j.id)} aria-label="Delete">
-                    <Trash2 className="h-4 w-4 text-destructive"/>
+                  <Button size="icon" variant="ghost" onClick={() => duplicate(j)} aria-label="Duplicate" title="Duplicate">
+                    <Copy className="h-4 w-4"/>
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="icon" variant="ghost" aria-label="Delete">
+                        <Trash2 className="h-4 w-4 text-destructive"/>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this job?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This permanently removes "{j.title}" and all its applications. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => remove(j.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </Card>
             ))}
