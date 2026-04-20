@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { MatchBar } from "@/components/MatchBar";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
-  Loader2, ArrowLeft, Users, Mail, MapPin, GraduationCap, ChevronDown, ChevronUp,
+  Loader2, ArrowLeft, Users, Mail, MapPin, GraduationCap, ChevronDown, ChevronUp, Download,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toCsv, downloadCsv } from "@/lib/csv";
+import { format } from "date-fns";
 
 type Status = "applied" | "shortlisted" | "interview" | "accepted" | "rejected";
 
@@ -28,7 +30,7 @@ const ApplicantsPage = () => {
     setJob(j);
     const { data: appsData } = await supabase
       .from("applications")
-      .select("*, profiles:student_id(full_name, email, avatar_url), student_profiles:student_id(headline, skills, education, location, experience_level, projects, bio)")
+      .select("*, profiles:student_id(full_name, email, avatar_url), student_profiles:student_id(headline, skills, education, location, experience_level, projects, bio, phone)")
       .eq("job_id", id)
       .order("match_score", { ascending: false });
     setApps(appsData ?? []);
@@ -43,6 +45,34 @@ const ApplicantsPage = () => {
     else { toast({ title: `Marked as ${status}` }); load(); }
   };
 
+  const exportCsv = () => {
+    if (apps.length === 0) {
+      toast({ title: "No applicants to export" });
+      return;
+    }
+    const rows = apps.map((a) => ({
+      name: a.profiles?.full_name ?? "",
+      email: a.profiles?.email ?? "",
+      phone: a.student_profiles?.phone ?? "",
+      headline: a.student_profiles?.headline ?? "",
+      location: a.student_profiles?.location ?? "",
+      experience_level: a.student_profiles?.experience_level ?? "",
+      education: a.student_profiles?.education ?? "",
+      skills: (a.student_profiles?.skills ?? []).join("; "),
+      match_score: a.match_score ?? 0,
+      ats_score: a.ats_score ?? 0,
+      status: a.status,
+      applied_at: a.applied_at ? format(new Date(a.applied_at), "yyyy-MM-dd HH:mm") : "",
+    }));
+    const csv = toCsv(rows, [
+      "name", "email", "phone", "headline", "location", "experience_level",
+      "education", "skills", "match_score", "ats_score", "status", "applied_at",
+    ]);
+    const safe = (job?.title ?? "applicants").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    downloadCsv(`${safe}-applicants-${format(new Date(), "yyyyMMdd")}.csv`, csv);
+    toast({ title: `Exported ${rows.length} applicants` });
+  };
+
   if (loading) return <AppShell><div className="flex justify-center p-20"><Loader2 className="h-6 w-6 animate-spin"/></div></AppShell>;
   if (!job) return <AppShell><div className="text-center p-12">Job not found.</div></AppShell>;
 
@@ -53,12 +83,17 @@ const ApplicantsPage = () => {
           <Link to="/company/jobs"><ArrowLeft className="h-4 w-4 mr-1"/>All jobs</Link>
         </Button>
 
-        <div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Applicants for</div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold">{job.title}</h1>
-          <p className="text-muted-foreground inline-flex items-center gap-2 mt-1">
-            <Users className="h-4 w-4"/>{apps.length} applicant{apps.length !== 1 && "s"} · sorted by match
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Applicants for</div>
+            <h1 className="font-display text-3xl md:text-4xl font-bold">{job.title}</h1>
+            <p className="text-muted-foreground inline-flex items-center gap-2 mt-1">
+              <Users className="h-4 w-4"/>{apps.length} applicant{apps.length !== 1 && "s"} · sorted by match
+            </p>
+          </div>
+          <Button onClick={exportCsv} variant="outline" className="gap-2" disabled={apps.length === 0}>
+            <Download className="h-4 w-4"/> Export CSV
+          </Button>
         </div>
 
         {apps.length === 0 ? (
