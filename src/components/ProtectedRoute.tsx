@@ -19,7 +19,11 @@ export const ProtectedRoute = ({ children, requireRole }: Props) => {
     );
   }
   if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
-  if (requireRole && role && role !== requireRole && role !== "admin") {
+  if (requireRole && role && role !== requireRole) {
+    if (requireRole === "admin") {
+      return <Navigate to={role === "company" ? "/company" : "/student"} replace />;
+    }
+    if (role === "admin") return <>{children}</>; // admin can access any role page
     return <Navigate to={role === "company" ? "/company" : "/student"} replace />;
   }
   return <>{children}</>;
