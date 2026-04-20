@@ -35,7 +35,7 @@ const JobsBrowse = () => {
     if (!user) return;
     (async () => {
       // Auto-close expired jobs (lightweight; safe to run for any user)
-      await supabase.rpc("close_expired_jobs").catch(() => {});
+      try { await supabase.rpc("close_expired_jobs"); } catch {}
       const [{ data: sp }, { data: js }] = await Promise.all([
         supabase.from("student_profiles").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("jobs").select("*, company_profiles(company_name, logo_url, verified)").eq("is_open", true).order("created_at", { ascending: false }),

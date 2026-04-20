@@ -77,7 +77,7 @@ const ApplicantsPage = () => {
   const toggleOne = (appId: string) => {
     setSelected((s) => {
       const next = new Set(s);
-      next.has(appId) ? next.delete(appId) : next.add(appId);
+      if (next.has(appId)) next.delete(appId); else next.add(appId);
       return next;
     });
   };
