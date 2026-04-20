@@ -109,6 +109,7 @@ export type Database = {
           logo_url: string | null
           updated_at: string
           user_id: string
+          verified: boolean
           website: string | null
         }
         Insert: {
@@ -120,6 +121,7 @@ export type Database = {
           logo_url?: string | null
           updated_at?: string
           user_id: string
+          verified?: boolean
           website?: string | null
         }
         Update: {
@@ -131,9 +133,60 @@ export type Database = {
           logo_url?: string | null
           updated_at?: string
           user_id?: string
+          verified?: boolean
           website?: string | null
         }
         Relationships: []
+      }
+      interviews: {
+        Row: {
+          application_id: string
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          id: string
+          location: string | null
+          notes: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["interview_status"]
+          type: Database["public"]["Enums"]["interview_type"]
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          id?: string
+          location?: string | null
+          notes?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["interview_status"]
+          type?: Database["public"]["Enums"]["interview_type"]
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          id?: string
+          location?: string | null
+          notes?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["interview_status"]
+          type?: Database["public"]["Enums"]["interview_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jobs: {
         Row: {
@@ -350,6 +403,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      close_expired_jobs: { Args: never; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -371,6 +425,8 @@ export type Database = {
         | "accepted"
         | "rejected"
       experience_level: "entry" | "junior" | "mid" | "senior"
+      interview_status: "scheduled" | "completed" | "cancelled"
+      interview_type: "online" | "onsite"
       job_type: "full_time" | "part_time" | "internship" | "contract"
       work_mode: "remote" | "hybrid" | "onsite"
     }
@@ -509,6 +565,8 @@ export const Constants = {
         "rejected",
       ],
       experience_level: ["entry", "junior", "mid", "senior"],
+      interview_status: ["scheduled", "completed", "cancelled"],
+      interview_type: ["online", "onsite"],
       job_type: ["full_time", "part_time", "internship", "contract"],
       work_mode: ["remote", "hybrid", "onsite"],
     },
