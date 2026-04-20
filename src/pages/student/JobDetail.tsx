@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MatchBar } from "@/components/MatchBar";
-import { Loader2, MapPin, ArrowLeft, CheckCircle2, Building2, Sparkles, Bookmark, BookmarkCheck, AlertCircle } from "lucide-react";
+import { Loader2, MapPin, ArrowLeft, CheckCircle2, Building2, Sparkles, Bookmark, BookmarkCheck, AlertCircle, BadgeCheck } from "lucide-react";
 import { computeMatchScore, matchBreakdown, type StudentMatchInput, type ExperienceLevel } from "@/lib/match";
 import { toast } from "@/hooks/use-toast";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
+import { pushRecentJob } from "@/lib/recentJobs";
 
 const JobDetail = () => {
   const { id } = useParams();
@@ -31,9 +32,10 @@ const JobDetail = () => {
 
   useEffect(() => {
     if (!id || !user) return;
+    pushRecentJob(id);
     (async () => {
       const [{ data: j }, { data: sp }, { data: app }] = await Promise.all([
-        supabase.from("jobs").select("*, company_profiles(company_name, industry, location, description)").eq("id", id).maybeSingle(),
+        supabase.from("jobs").select("*, company_profiles(company_name, industry, location, description, logo_url, verified)").eq("id", id).maybeSingle(),
         supabase.from("student_profiles").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("applications").select("id, ats_score, missing_skills, suggestions").eq("job_id", id).eq("student_id", user.id).maybeSingle(),
       ]);
@@ -129,6 +131,8 @@ const JobDetail = () => {
   if (!job) return <AppShell><div className="text-center p-12">Job not found.</div></AppShell>;
 
   const saved = isSaved(job.id);
+  const logo = job.company_profiles?.logo_url;
+  const verified = job.company_profiles?.verified;
 
   return (
     <AppShell>
@@ -137,19 +141,29 @@ const JobDetail = () => {
 
         <Card className="p-7">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-            <div className="min-w-0">
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                {job.company_profiles?.company_name ?? "Company"}
-              </div>
-              <h1 className="font-display text-3xl md:text-4xl font-bold">{job.title}</h1>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground mt-2">
-                {job.location && <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4"/>{job.location}</span>}
-                <span className="capitalize">{job.experience_level}</span>
-                {job.work_mode && <span className="capitalize">{job.work_mode}</span>}
-                {job.job_type && <span className="capitalize">{String(job.job_type).replace("_"," ")}</span>}
-                {(job.salary_min || job.salary_max) && (
-                  <span>${(job.salary_min ?? 0).toLocaleString()}–${(job.salary_max ?? 0).toLocaleString()}</span>
+            <div className="flex gap-4 min-w-0">
+              <div className="h-16 w-16 rounded-2xl bg-muted/40 border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                {logo ? (
+                  <img src={logo} alt="" className="h-full w-full object-cover"/>
+                ) : (
+                  <Building2 className="h-7 w-7 text-muted-foreground"/>
                 )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 inline-flex items-center gap-1.5">
+                  {job.company_profiles?.company_name ?? "Company"}
+                  {verified && <BadgeCheck className="h-3.5 w-3.5 text-primary"/>}
+                </div>
+                <h1 className="font-display text-3xl md:text-4xl font-bold">{job.title}</h1>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground mt-2">
+                  {job.location && <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4"/>{job.location}</span>}
+                  <span className="capitalize">{job.experience_level}</span>
+                  {job.work_mode && <span className="capitalize">{job.work_mode}</span>}
+                  {job.job_type && <span className="capitalize">{String(job.job_type).replace("_"," ")}</span>}
+                  {(job.salary_min || job.salary_max) && (
+                    <span>${(job.salary_min ?? 0).toLocaleString()}–${(job.salary_max ?? 0).toLocaleString()}</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">

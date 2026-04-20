@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MatchBar } from "@/components/MatchBar";
 import { StatusBadge } from "@/components/StatusBadge";
+import { InterviewDialog } from "@/components/InterviewDialog";
 import {
-  Loader2, ArrowLeft, Users, Mail, MapPin, GraduationCap, ChevronDown, ChevronUp, Download,
+  Loader2, ArrowLeft, Users, Mail, MapPin, GraduationCap, ChevronDown, ChevronUp,
+  Download, CalendarPlus, CalendarClock,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,7 +25,13 @@ const ApplicantsPage = () => {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<any>(null);
   const [apps, setApps] = useState<any[]>([]);
+  const [interviewsByApp, setInterviewsByApp] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<Status | "">("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const [iv, setIv] = useState<{ open: boolean; appId: string; existing: any | null; name?: string } | null>(null);
 
   const load = async () => {
     if (!id) return;
@@ -34,6 +43,20 @@ const ApplicantsPage = () => {
       .eq("job_id", id)
       .order("match_score", { ascending: false });
     setApps(appsData ?? []);
+    setSelected(new Set());
+
+    const ids = (appsData ?? []).map((a: any) => a.id);
+    if (ids.length) {
+      const { data: ints } = await supabase
+        .from("interviews")
+        .select("*")
+        .in("application_id", ids)
+        .neq("status", "cancelled")
+        .order("scheduled_at", { ascending: true });
+      const map: Record<string, any> = {};
+      (ints ?? []).forEach((i: any) => { if (!map[i.application_id]) map[i.application_id] = i; });
+      setInterviewsByApp(map);
+    }
     setLoading(false);
   };
 
@@ -43,6 +66,30 @@ const ApplicantsPage = () => {
     const { error } = await supabase.from("applications").update({ status }).eq("id", appId);
     if (error) toast({ title: "Update failed", description: error.message, variant: "destructive" });
     else { toast({ title: `Marked as ${status}` }); load(); }
+  };
+
+  const allChecked = useMemo(() => apps.length > 0 && selected.size === apps.length, [apps, selected]);
+
+  const toggleAll = () => {
+    setSelected(allChecked ? new Set() : new Set(apps.map((a) => a.id)));
+  };
+
+  const toggleOne = (appId: string) => {
+    setSelected((s) => {
+      const next = new Set(s);
+      next.has(appId) ? next.delete(appId) : next.add(appId);
+      return next;
+    });
+  };
+
+  const applyBulk = async () => {
+    if (!bulkStatus || selected.size === 0) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    const { error } = await supabase.from("applications").update({ status: bulkStatus }).in("id", ids);
+    setBulkBusy(false);
+    if (error) toast({ title: "Bulk update failed", description: error.message, variant: "destructive" });
+    else { toast({ title: `${ids.length} updated to ${bulkStatus}` }); setBulkStatus(""); load(); }
   };
 
   const exportCsv = () => {
@@ -96,6 +143,31 @@ const ApplicantsPage = () => {
           </Button>
         </div>
 
+        {apps.length > 0 && (
+          <Card className="p-3 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Checkbox checked={allChecked} onCheckedChange={toggleAll} aria-label="Select all"/>
+              <span className="text-sm text-muted-foreground">
+                {selected.size > 0 ? `${selected.size} selected` : "Select all"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as Status)} disabled={selected.size === 0}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Bulk action…"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="shortlisted">Shortlist</SelectItem>
+                  <SelectItem value="interview">Move to interview</SelectItem>
+                  <SelectItem value="accepted">Accept / hire</SelectItem>
+                  <SelectItem value="rejected">Reject</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={applyBulk} disabled={!bulkStatus || selected.size === 0 || bulkBusy} size="sm">
+                {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : "Apply"}
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {apps.length === 0 ? (
           <Card className="p-12 text-center text-muted-foreground">
             <Users className="h-10 w-10 mx-auto mb-3 opacity-50"/>
@@ -106,9 +178,16 @@ const ApplicantsPage = () => {
             {apps.map((a) => {
               const open = expanded === a.id;
               const sp = a.student_profiles;
+              const interview = interviewsByApp[a.id];
               return (
                 <Card key={a.id} className="p-5">
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <Checkbox
+                      checked={selected.has(a.id)}
+                      onCheckedChange={() => toggleOne(a.id)}
+                      aria-label="Select applicant"
+                      className="shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="font-display font-bold text-lg">{a.profiles?.full_name || "Unnamed"}</div>
                       <div className="text-sm text-muted-foreground inline-flex items-center gap-3 flex-wrap">
@@ -130,6 +209,15 @@ const ApplicantsPage = () => {
                         <SelectItem value="rejected">Reject</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button
+                      size="sm"
+                      variant={interview ? "secondary" : "outline"}
+                      onClick={() => setIv({ open: true, appId: a.id, existing: interview ?? null, name: a.profiles?.full_name })}
+                      className="gap-1.5"
+                    >
+                      {interview ? <CalendarClock className="h-4 w-4"/> : <CalendarPlus className="h-4 w-4"/>}
+                      {interview ? format(new Date(interview.scheduled_at), "MMM d, h:mm a") : "Schedule"}
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => setExpanded(open ? null : a.id)}>
                       {open ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
                     </Button>
@@ -162,6 +250,12 @@ const ApplicantsPage = () => {
                           <p className="text-muted-foreground whitespace-pre-wrap">{sp.projects}</p>
                         </div>
                       )}
+                      {a.cover_note && (
+                        <div>
+                          <div className="font-semibold mb-1">Cover note</div>
+                          <p className="text-muted-foreground whitespace-pre-wrap">{a.cover_note}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </Card>
@@ -170,6 +264,18 @@ const ApplicantsPage = () => {
           </div>
         )}
       </div>
+
+      {iv && (
+        <InterviewDialog
+          open={iv.open}
+          onOpenChange={(v) => setIv((cur) => (cur ? { ...cur, open: v } : cur))}
+          applicationId={iv.appId}
+          existing={iv.existing}
+          candidateName={iv.name}
+          jobTitle={job.title}
+          onSaved={load}
+        />
+      )}
     </AppShell>
   );
 };

@@ -8,27 +8,52 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MatchBar } from "@/components/MatchBar";
 import { ApplicationTimeline } from "@/components/ApplicationTimeline";
-import { Loader2, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, FileText, ChevronDown, ChevronUp, X, Calendar, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 const MyApplications = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState<any[]>([]);
+  const [interviewsByApp, setInterviewsByApp] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = async () => {
     if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("applications")
-        .select("*, jobs(id, title, location, company_profiles(company_name, logo_url))")
-        .eq("student_id", user.id)
-        .order("applied_at", { ascending: false });
-      setApps(data ?? []);
-      setLoading(false);
-    })();
-  }, [user]);
+    const { data } = await supabase
+      .from("applications")
+      .select("*, jobs(id, title, location, company_profiles(company_name, logo_url))")
+      .eq("student_id", user.id)
+      .order("applied_at", { ascending: false });
+    setApps(data ?? []);
+
+    const ids = (data ?? []).map((a: any) => a.id);
+    if (ids.length) {
+      const { data: ints } = await supabase
+        .from("interviews")
+        .select("*")
+        .in("application_id", ids)
+        .neq("status", "cancelled")
+        .order("scheduled_at", { ascending: true });
+      const map: Record<string, any> = {};
+      (ints ?? []).forEach((i: any) => { if (!map[i.application_id]) map[i.application_id] = i; });
+      setInterviewsByApp(map);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [user]);
+
+  const withdraw = async (appId: string) => {
+    const { error } = await supabase.from("applications").delete().eq("id", appId);
+    if (error) toast({ title: "Withdraw failed", description: error.message, variant: "destructive" });
+    else { toast({ title: "Application withdrawn" }); load(); }
+  };
 
   if (loading) return <AppShell><div className="flex justify-center p-20"><Loader2 className="h-6 w-6 animate-spin"/></div></AppShell>;
 
@@ -51,6 +76,7 @@ const MyApplications = () => {
             {apps.map((a) => {
               const open = expanded === a.id;
               const logo = a.jobs?.company_profiles?.logo_url;
+              const interview = interviewsByApp[a.id];
               return (
                 <Card key={a.id} className="p-5 hover:shadow-soft transition-smooth">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -78,10 +104,53 @@ const MyApplications = () => {
                       <MatchBar score={a.match_score}/>
                     </div>
                     <StatusBadge status={a.status}/>
-                    <Button variant="ghost" size="icon" onClick={() => setExpanded(open ? null : a.id)} aria-label="Toggle timeline">
-                      {open ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setExpanded(open ? null : a.id)} aria-label="Toggle details">
+                        {open ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" aria-label="Withdraw" title="Withdraw">
+                            <X className="h-4 w-4 text-destructive"/>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Withdraw application?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              You're about to withdraw your application for "{a.jobs?.title}". You can re-apply later if the job is still open.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Keep it</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => withdraw(a.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Withdraw
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
+
+                  {interview && (
+                    <div className="mt-4 p-3 rounded-xl bg-warning/10 border border-warning/30 flex items-start gap-3 text-sm">
+                      <Calendar className="h-4 w-4 text-warning-foreground shrink-0 mt-0.5"/>
+                      <div className="flex-1">
+                        <div className="font-semibold">Interview scheduled</div>
+                        <div className="text-muted-foreground">
+                          {format(new Date(interview.scheduled_at), "EEE, MMM d · h:mm a")} · {interview.duration_minutes} min · {interview.type === "online" ? "Online" : "On-site"}
+                        </div>
+                        {interview.location && (
+                          <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                            <MapPin className="h-3 w-3"/>{interview.location}
+                          </div>
+                        )}
+                        {interview.notes && (
+                          <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{interview.notes}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {open && (
                     <div className="mt-5 pt-5 border-t border-border">

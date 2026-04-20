@@ -9,16 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MatchBar } from "@/components/MatchBar";
-import { Loader2, Search, MapPin, Briefcase, Bookmark, BookmarkCheck, SlidersHorizontal } from "lucide-react";
+import {
+  Loader2, Search, MapPin, Briefcase, Bookmark, BookmarkCheck, SlidersHorizontal, Clock, BadgeCheck,
+} from "lucide-react";
 import { computeMatchScore, type StudentMatchInput, type ExperienceLevel } from "@/lib/match";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { cn } from "@/lib/utils";
+import { getRecentJobIds } from "@/lib/recentJobs";
 
 const JobsBrowse = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<StudentMatchInput | null>(null);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [recent, setRecent] = useState<any[]>([]);
   const [q, setQ] = useState("");
   const [workMode, setWorkMode] = useState<string>("any");
   const [jobType, setJobType] = useState<string>("any");
@@ -30,9 +34,11 @@ const JobsBrowse = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
+      // Auto-close expired jobs (lightweight; safe to run for any user)
+      await supabase.rpc("close_expired_jobs").catch(() => {});
       const [{ data: sp }, { data: js }] = await Promise.all([
         supabase.from("student_profiles").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("jobs").select("*, company_profiles(company_name)").eq("is_open", true).order("created_at", { ascending: false }),
+        supabase.from("jobs").select("*, company_profiles(company_name, logo_url, verified)").eq("is_open", true).order("created_at", { ascending: false }),
       ]);
       setStudent({
         skills: sp?.skills ?? [],
@@ -41,6 +47,18 @@ const JobsBrowse = () => {
         location: sp?.location ?? null,
       });
       setJobs(js ?? []);
+
+      // Recently viewed
+      const ids = getRecentJobIds().slice(0, 4);
+      if (ids.length) {
+        const { data: rv } = await supabase
+          .from("jobs")
+          .select("id, title, location, company_profiles(company_name, logo_url)")
+          .in("id", ids)
+          .eq("is_open", true);
+        const ordered = ids.map((id) => rv?.find((j: any) => j.id === id)).filter(Boolean);
+        setRecent(ordered as any[]);
+      }
       setLoading(false);
     })();
   }, [user]);
@@ -86,6 +104,26 @@ const JobsBrowse = () => {
           <h1 className="font-display text-4xl font-bold">Browse jobs</h1>
           <p className="text-muted-foreground">{ranked.length} of {jobs.length} jobs · sorted by your match</p>
         </div>
+
+        {recent.length > 0 && (
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <Clock className="h-3.5 w-3.5"/> Recently viewed
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recent.map((r: any) => (
+                <Link
+                  key={r.id}
+                  to={`/jobs/${r.id}`}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted text-sm transition-smooth"
+                >
+                  <span className="font-medium truncate max-w-[180px]">{r.title}</span>
+                  <span className="text-xs text-muted-foreground">· {r.company_profiles?.company_name ?? "Company"}</span>
+                </Link>
+              ))}
+            </div>
+          </Card>
+        )}
 
         <div className="flex gap-2 max-w-2xl">
           <div className="relative flex-1">
@@ -163,6 +201,8 @@ const JobsBrowse = () => {
           <div className="grid md:grid-cols-2 gap-4">
             {ranked.map((j) => {
               const saved = isSaved(j.id);
+              const logo = j.company_profiles?.logo_url;
+              const verified = j.company_profiles?.verified;
               return (
                 <Card key={j.id} className="p-5 h-full border-2 hover:border-primary/40 hover:shadow-soft transition-smooth relative group">
                   <button
@@ -176,10 +216,20 @@ const JobsBrowse = () => {
                     {saved ? <BookmarkCheck className="h-4 w-4"/> : <Bookmark className="h-4 w-4"/>}
                   </button>
                   <Link to={`/jobs/${j.id}`} className="block">
-                    <div className="flex items-start justify-between gap-3 mb-3 pr-10">
+                    <div className="flex items-start gap-3 mb-3 pr-10">
+                      <div className="h-11 w-11 rounded-lg bg-muted/40 border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                        {logo ? (
+                          <img src={logo} alt="" className="h-full w-full object-cover"/>
+                        ) : (
+                          <span className="font-display font-bold text-sm text-muted-foreground">
+                            {(j.company_profiles?.company_name ?? "?").charAt(0)}
+                          </span>
+                        )}
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5 inline-flex items-center gap-1">
                           {j.company_profiles?.company_name ?? "Company"}
+                          {verified && <BadgeCheck className="h-3.5 w-3.5 text-primary"/>}
                         </div>
                         <h3 className="font-display font-bold text-lg leading-tight">{j.title}</h3>
                       </div>
