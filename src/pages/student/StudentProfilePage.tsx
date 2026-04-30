@@ -176,10 +176,52 @@ const StudentProfilePage = () => {
   return (
     <AppShell>
       <div className="max-w-3xl space-y-6">
-        <div>
-          <h1 className="font-display text-3xl font-bold">My profile</h1>
-          <p className="text-muted-foreground">The richer your profile, the better your matches.</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-3xl font-bold">My profile</h1>
+            <p className="text-muted-foreground">The richer your profile, the better your matches.</p>
+          </div>
+          <Button variant="outline" onClick={copyShareLink} className="gap-2">
+            <Share2 className="h-4 w-4" /> Share profile
+          </Button>
         </div>
+
+        <Card className="p-6">
+          <div className="flex items-center gap-5 flex-wrap">
+            <div className="relative">
+              <div className="h-20 w-20 rounded-2xl bg-muted overflow-hidden border-2 border-border flex items-center justify-center">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="font-display text-2xl font-bold text-muted-foreground">
+                    {(fullName || "?").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <input ref={avatarRef} type="file" accept="image/*" hidden onChange={onAvatarUpload} />
+              <button
+                onClick={() => avatarRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft hover:scale-105 transition-smooth"
+                aria-label="Change photo"
+              >
+                {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <div className="font-display font-semibold">Profile photo</div>
+              <p className="text-sm text-muted-foreground">A friendly face boosts response rates. Max 2MB.</p>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-muted/40 border border-border">
+              <BadgeCheck className={openToWork ? "h-5 w-5 text-success" : "h-5 w-5 text-muted-foreground"} />
+              <div>
+                <div className="text-sm font-semibold">Open to work</div>
+                <div className="text-xs text-muted-foreground">Show a green badge to companies</div>
+              </div>
+              <Switch checked={openToWork} onCheckedChange={toggleOpenToWork} />
+            </div>
+          </div>
+        </Card>
 
         <Card className="p-6">
           <div className="flex items-start gap-4">
