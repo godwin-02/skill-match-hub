@@ -14,6 +14,9 @@ import { computeMatchScore, matchBreakdown, type StudentMatchInput, type Experie
 import { toast } from "@/hooks/use-toast";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { pushRecentJob } from "@/lib/recentJobs";
+import { ReviewsSection } from "@/components/ReviewsSection";
+import { FollowButton } from "@/components/FollowButton";
+import { Link } from "react-router-dom";
 
 const JobDetail = () => {
   const { id } = useParams();
