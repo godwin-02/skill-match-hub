@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TagInput } from "@/components/TagInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, Upload, FileText, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, Upload, FileText, CheckCircle2, Camera, Share2, BadgeCheck } from "lucide-react";
 import { extractPdfText } from "@/lib/pdfText";
 
 type Level = "entry" | "junior" | "mid" | "senior";
@@ -18,9 +19,11 @@ type Level = "entry" | "junior" | "mid" | "senior";
 const StudentProfilePage = () => {
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [fullName, setFullName] = useState("");
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
@@ -33,6 +36,8 @@ const StudentProfilePage = () => {
   const [phone, setPhone] = useState("");
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [openToWork, setOpenToWork] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -54,10 +59,56 @@ const StudentProfilePage = () => {
         setPhone((sp as any).phone ?? "");
         setResumeUrl((sp as any).resume_url ?? null);
         setResumeText((sp as any).resume_text ?? "");
+        setAvatarUrl((sp as any).avatar_url ?? null);
+        setOpenToWork(!!(sp as any).open_to_work);
       }
       setLoading(false);
     })();
   }, [user]);
+
+  const onAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Image only", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Max 2MB", variant: "destructive" });
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/avatar.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = `${pub.publicUrl}?t=${Date.now()}`;
+      await supabase.from("student_profiles").upsert({ user_id: user.id, avatar_url: url });
+      setAvatarUrl(url);
+      toast({ title: "Photo updated ✨" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarRef.current) avatarRef.current.value = "";
+    }
+  };
+
+  const toggleOpenToWork = async (val: boolean) => {
+    if (!user) return;
+    setOpenToWork(val);
+    await supabase.from("student_profiles").upsert({ user_id: user.id, open_to_work: val });
+    toast({ title: val ? "You're open to work 🟢" : "Open-to-work disabled" });
+  };
+
+  const copyShareLink = async () => {
+    if (!user) return;
+    const url = `${window.location.origin}/u/${user.id}`;
+    await navigator.clipboard.writeText(url);
+    toast({ title: "Link copied!", description: url });
+  };
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
