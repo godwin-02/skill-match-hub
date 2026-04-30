@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Briefcase, FileText, User, Building2,
-  PlusCircle, LogOut, Sparkles, Menu, Bookmark, BarChart3, Shield,
+  PlusCircle, LogOut, Sparkles, Menu, Bookmark, BarChart3, Shield, MessagesSquare,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetTrigger,
@@ -20,12 +20,14 @@ const studentNav: NavItem[] = [
   { to: "/jobs", label: "Browse jobs", icon: Briefcase },
   { to: "/saved", label: "Saved jobs", icon: Bookmark },
   { to: "/applications", label: "My applications", icon: FileText },
+  { to: "/messages", label: "Messages", icon: MessagesSquare },
   { to: "/profile", label: "My profile", icon: User },
 ];
 const companyNav: NavItem[] = [
   { to: "/company", label: "Dashboard", icon: LayoutDashboard },
   { to: "/company/jobs", label: "Manage jobs", icon: Briefcase },
   { to: "/company/jobs/new", label: "Post a job", icon: PlusCircle },
+  { to: "/messages", label: "Messages", icon: MessagesSquare },
   { to: "/company/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/company/profile", label: "Company profile", icon: Building2 },
 ];
