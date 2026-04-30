@@ -99,6 +99,27 @@ export type Database = {
           },
         ]
       }
+      company_follows: {
+        Row: {
+          company_id: string
+          created_at: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       company_profiles: {
         Row: {
           company_name: string
@@ -305,6 +326,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          body: string | null
+          company_id: string
+          created_at: string
+          id: string
+          rating: number
+          reviewer_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          reviewer_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewer_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saved_jobs: {
         Row: {
           created_at: string
@@ -328,12 +382,14 @@ export type Database = {
       }
       student_profiles: {
         Row: {
+          avatar_url: string | null
           bio: string | null
           created_at: string
           education: string | null
           experience_level: Database["public"]["Enums"]["experience_level"]
           headline: string | null
           location: string | null
+          open_to_work: boolean
           phone: string | null
           preferred_roles: string[]
           projects: string | null
@@ -344,12 +400,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           bio?: string | null
           created_at?: string
           education?: string | null
           experience_level?: Database["public"]["Enums"]["experience_level"]
           headline?: string | null
           location?: string | null
+          open_to_work?: boolean
           phone?: string | null
           preferred_roles?: string[]
           projects?: string | null
@@ -360,12 +418,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           bio?: string | null
           created_at?: string
           education?: string | null
           experience_level?: Database["public"]["Enums"]["experience_level"]
           headline?: string | null
           location?: string | null
+          open_to_work?: boolean
           phone?: string | null
           preferred_roles?: string[]
           projects?: string | null

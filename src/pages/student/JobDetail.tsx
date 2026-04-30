@@ -14,6 +14,9 @@ import { computeMatchScore, matchBreakdown, type StudentMatchInput, type Experie
 import { toast } from "@/hooks/use-toast";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { pushRecentJob } from "@/lib/recentJobs";
+import { ReviewsSection } from "@/components/ReviewsSection";
+import { FollowButton } from "@/components/FollowButton";
+import { Link } from "react-router-dom";
 
 const JobDetail = () => {
   const { id } = useParams();
@@ -280,7 +283,13 @@ const JobDetail = () => {
 
         {job.company_profiles && (
           <Card className="p-6">
-            <h2 className="font-display font-bold text-xl mb-3 flex items-center gap-2"><Building2 className="h-5 w-5"/>About the company</h2>
+            <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+              <h2 className="font-display font-bold text-xl flex items-center gap-2"><Building2 className="h-5 w-5"/>About the company</h2>
+              <div className="flex items-center gap-2">
+                <FollowButton companyId={job.company_id} />
+                <Button asChild variant="outline" size="sm"><Link to={`/c/${job.company_id}`}>View page</Link></Button>
+              </div>
+            </div>
             <div className="text-sm text-muted-foreground space-y-1">
               {job.company_profiles.industry && <div>{job.company_profiles.industry}</div>}
               {job.company_profiles.location && <div>{job.company_profiles.location}</div>}
@@ -288,6 +297,8 @@ const JobDetail = () => {
             </div>
           </Card>
         )}
+
+        {job.company_id && <ReviewsSection companyId={job.company_id} />}
       </div>
     </AppShell>
   );

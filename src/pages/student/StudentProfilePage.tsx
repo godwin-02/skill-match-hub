@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TagInput } from "@/components/TagInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, Upload, FileText, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, Upload, FileText, CheckCircle2, Camera, Share2, BadgeCheck } from "lucide-react";
 import { extractPdfText } from "@/lib/pdfText";
 
 type Level = "entry" | "junior" | "mid" | "senior";
@@ -18,9 +19,11 @@ type Level = "entry" | "junior" | "mid" | "senior";
 const StudentProfilePage = () => {
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [fullName, setFullName] = useState("");
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
@@ -33,6 +36,8 @@ const StudentProfilePage = () => {
   const [phone, setPhone] = useState("");
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [openToWork, setOpenToWork] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -54,10 +59,56 @@ const StudentProfilePage = () => {
         setPhone((sp as any).phone ?? "");
         setResumeUrl((sp as any).resume_url ?? null);
         setResumeText((sp as any).resume_text ?? "");
+        setAvatarUrl((sp as any).avatar_url ?? null);
+        setOpenToWork(!!(sp as any).open_to_work);
       }
       setLoading(false);
     })();
   }, [user]);
+
+  const onAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Image only", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Max 2MB", variant: "destructive" });
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/avatar.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = `${pub.publicUrl}?t=${Date.now()}`;
+      await supabase.from("student_profiles").upsert({ user_id: user.id, avatar_url: url });
+      setAvatarUrl(url);
+      toast({ title: "Photo updated ✨" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarRef.current) avatarRef.current.value = "";
+    }
+  };
+
+  const toggleOpenToWork = async (val: boolean) => {
+    if (!user) return;
+    setOpenToWork(val);
+    await supabase.from("student_profiles").upsert({ user_id: user.id, open_to_work: val });
+    toast({ title: val ? "You're open to work 🟢" : "Open-to-work disabled" });
+  };
+
+  const copyShareLink = async () => {
+    if (!user) return;
+    const url = `${window.location.origin}/u/${user.id}`;
+    await navigator.clipboard.writeText(url);
+    toast({ title: "Link copied!", description: url });
+  };
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,10 +176,52 @@ const StudentProfilePage = () => {
   return (
     <AppShell>
       <div className="max-w-3xl space-y-6">
-        <div>
-          <h1 className="font-display text-3xl font-bold">My profile</h1>
-          <p className="text-muted-foreground">The richer your profile, the better your matches.</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-3xl font-bold">My profile</h1>
+            <p className="text-muted-foreground">The richer your profile, the better your matches.</p>
+          </div>
+          <Button variant="outline" onClick={copyShareLink} className="gap-2">
+            <Share2 className="h-4 w-4" /> Share profile
+          </Button>
         </div>
+
+        <Card className="p-6">
+          <div className="flex items-center gap-5 flex-wrap">
+            <div className="relative">
+              <div className="h-20 w-20 rounded-2xl bg-muted overflow-hidden border-2 border-border flex items-center justify-center">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="font-display text-2xl font-bold text-muted-foreground">
+                    {(fullName || "?").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <input ref={avatarRef} type="file" accept="image/*" hidden onChange={onAvatarUpload} />
+              <button
+                onClick={() => avatarRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft hover:scale-105 transition-smooth"
+                aria-label="Change photo"
+              >
+                {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <div className="font-display font-semibold">Profile photo</div>
+              <p className="text-sm text-muted-foreground">A friendly face boosts response rates. Max 2MB.</p>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-muted/40 border border-border">
+              <BadgeCheck className={openToWork ? "h-5 w-5 text-success" : "h-5 w-5 text-muted-foreground"} />
+              <div>
+                <div className="text-sm font-semibold">Open to work</div>
+                <div className="text-xs text-muted-foreground">Show a green badge to companies</div>
+              </div>
+              <Switch checked={openToWork} onCheckedChange={toggleOpenToWork} />
+            </div>
+          </div>
+        </Card>
 
         <Card className="p-6">
           <div className="flex items-start gap-4">

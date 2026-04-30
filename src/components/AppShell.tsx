@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; }
 
@@ -106,6 +107,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <span className="font-display font-bold">SkillSync</span>
           </Link>
           <div className="flex items-center gap-1">
+            <ThemeToggle />
             <NotificationsBell />
             <Sheet>
               <SheetTrigger asChild>
