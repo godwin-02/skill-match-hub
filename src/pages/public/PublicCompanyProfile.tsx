@@ -20,7 +20,7 @@ const PublicCompanyProfile = () => {
     (async () => {
       const [{ data: comp }, { data: js }] = await Promise.all([
         supabase.from("company_profiles").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("jobs").select("id, title, location, work_mode, status").eq("company_id", userId).eq("status", "open").order("created_at", { ascending: false }).limit(10),
+        supabase.from("jobs").select("id, title, location, work_mode, is_open").eq("company_id", userId).eq("is_open", true).order("created_at", { ascending: false }).limit(10),
       ]);
       setC(comp);
       setJobs(js ?? []);
